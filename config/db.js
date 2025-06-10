@@ -1,0 +1,8 @@
+import mongoose from "mongoose";
+
+async function dbConnection() {
+  await mongoose.connect(`${process.env.DB_URI}eventmaster`);
+  console.log("db connection");
+}
+
+export default dbConnection;
