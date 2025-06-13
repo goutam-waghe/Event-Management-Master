@@ -5,6 +5,7 @@ import userRouter from "./apis/user/user.route.js";
 import CategoryRouter from "./apis/category/category.route.js";
 import bookingRouter from "./apis/booking/booking.route.js";
 import eventRouter from "./apis/event/event.route.js";
+import dashboardRouter from "./apis/dashboard/dashboard.route.js";
 const app = express();
 
 // .env
@@ -20,5 +21,6 @@ app.use(userRouter);
 app.use(CategoryRouter);
 app.use(eventRouter);
 app.use(bookingRouter);
+app.use(dashboardRouter);
 
 export default app;

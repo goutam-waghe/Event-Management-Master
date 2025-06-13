@@ -6,10 +6,11 @@ import {
 } from "../../helper/comman/hashingPassword.js";
 import { generateToken } from "../../helper/comman/jwtToken.js";
 import { sendMail } from "../../helper/comman/sendMail.js";
+import { userRole as roles } from "../../helper/comman/constant.js";
 
 export const userRegiter = async function (req, res, next) {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role = "user" } = req.body;
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
@@ -17,6 +18,13 @@ export const userRegiter = async function (req, res, next) {
         status: false,
         message: "Validation failed",
         errors: errors.array(),
+      });
+    }
+
+    if (!roles.includes(role)) {
+      return res.status(200).json({
+        success: false,
+        message: "Invalid user role",
       });
     }
     let user = await UserModel.findOne({ email });
@@ -33,6 +41,7 @@ export const userRegiter = async function (req, res, next) {
       userName: name,
       email,
       password: hashedPassword,
+      role,
     });
 
     res.status(200).json({
@@ -184,3 +193,40 @@ export const resetPassword = async function (req, res, next) {
     message: "password is reset successfully",
   });
 };
+
+//list of user
+export const manageUsers = async function (req, res, next) {
+  const users = await UserModel.find({});
+  res.status(200).json({
+    success: true,
+    users,
+  });
+};
+
+//change role
+export const updateRole = async function (req, res, next) {
+  const { id } = req.params;
+  const { role } = req.body;
+  const user = await UserModel.findById(id);
+  if (!user) {
+    return res.json({
+      success: false,
+      message: "user not found",
+    });
+  }
+  if (!roles.includes(role)) {
+    return res.status(200).json({
+      success: false,
+      message: "Invalid user role",
+    });
+  }
+
+  user.role = role;
+  user.save();
+  res.json({
+    success: true,
+    message: "user role change successfully",
+  });
+};
+
+//send email
