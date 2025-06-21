@@ -17,10 +17,10 @@ app.use(cookieParser());
 // app.use(cors())
 
 // routes
-app.use(userRouter);
-app.use(CategoryRouter);
-app.use(eventRouter);
-app.use(bookingRouter);
-app.use(dashboardRouter);
+app.use("/user", userRouter);
+app.use("/category", CategoryRouter);
+app.use("/event", eventRouter);
+app.use("/booking", bookingRouter);
+app.use("/dashboard", dashboardRouter);
 
 export default app;

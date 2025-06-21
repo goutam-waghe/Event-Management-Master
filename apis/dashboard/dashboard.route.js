@@ -8,10 +8,10 @@ import { isAuthanticated } from "../../helper/comman/isAuthanticated.js";
 
 const dashboardRouter = Router();
 
-dashboardRouter.route("/dashboard/user").get(isAuthanticated, userDashboard);
-dashboardRouter.route("/dashboard/admin").get(isAuthanticated, adminDashboard);
+dashboardRouter.route("/user").get(isAuthanticated, userDashboard);
+dashboardRouter.route("/admin").get(isAuthanticated, adminDashboard);
 dashboardRouter
-  .route("/dashboard/organizer")
+  .route("/organizer")
   .get(isAuthanticated, organizerDashboard);
 
 export default dashboardRouter;

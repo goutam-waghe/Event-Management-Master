@@ -1,9 +1,13 @@
-import CategoryModel from "../../models/category.model.js";
-
 import { validationResult } from "express-validator";
+import {
+  createCategoryService,
+  getAllCategoryService,
+  updateCategoryService,
+} from "./category.service.js";
+
+//createCategory
 export const createCategory = async (req, res, next) => {
   try {
-    const { name } = req.body;
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(401).json({
@@ -12,72 +16,48 @@ export const createCategory = async (req, res, next) => {
         errors: errors.array(),
       });
     }
-    let category = await CategoryModel.findOne({ name });
-    if (category) {
-      return res.status(401).json({
-        success: false,
-        message: "category is already exits",
-      });
-    }
-    category = await CategoryModel.create({
-      name,
-    });
-
-    res.json({
-      success: true,
-      message: "category created",
-    });
+    const { name } = req.body;
+    const response = await createCategoryService(name);
+    return res.status(response.code).json(response);
   } catch (error) {
-    res.json({
+    return res.json({
       success: false,
       message: `ERROR ${error}`,
     });
   }
 };
+
+// updateCategory
 export const updateCategory = async (req, res, next) => {
-  const { id } = req.params;
-  const { name, isActive = true } = req.body;
-  const category = await CategoryModel.findById(id);
-  if (!category) {
-    return res.status(401).json({
+  try {
+    const categoryId = req.params.id;
+    const { name, isActive = true } = req.body;
+    const response = await updateCategoryService({
+      categoryId,
+      name,
+      isActive,
+    });
+    return res.status(response.code).json(response);
+  } catch (error) {
+    return res.json({
       success: false,
-      message: "category not found",
+      message: `ERROR ${error}`,
     });
   }
-
-  if (name) category.name = name;
-
-  if (isActive) {
-    category.isAcitve = true;
-  } else {
-    category.isAcitve = false;
-  }
-  await category.save();
-  res.status(200).json({
-    success: true,
-    message: "category updated sucessfully",
-  });
 };
 export const getAllCategory = async (req, res, next) => {
-  const { search, page = 1, perpagedata = 10 } = req.query;
-
-  const perPage = Number(page);
-
-  const limit = Number(perpagedata);
-  const skip = (perPage - 1) * limit;
-  let filter;
-  if (search.trim()) {
-    filter = {
-      name: { $regex: ".*" + search + ".*", $options: "i" },
-    };
+  try {
+    const { search, page = 1, perpagedata = 10 } = req.query;
+    const response = await getAllCategoryService({
+      search,
+      page,
+      perpagedata,
+    });
+    return res.status(response.code).json(response);
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: `ERROR ${error}`,
+    });
   }
-  const allList = await CategoryModel.find(filter)
-    .sort({ _id: -1 })
-    .skip(skip)
-    .limit(limit);
-
-  res.json({
-    success: true,
-    allList,
-  });
 };

@@ -1,18 +1,16 @@
 import { validationResult } from "express-validator";
-import UserModel from "../../models/user.model.js";
 import {
-  comparePassword,
-  hashPassword,
-} from "../../helper/comman/hashingPassword.js";
-import { generateToken } from "../../helper/comman/jwtToken.js";
-import { sendMail } from "../../helper/comman/sendMail.js";
-import { userRole as roles } from "../../helper/comman/constant.js";
+  editProfileService,
+  forgetPasswordService,
+  getProfileService,
+  resetPasswordService,
+  userLoginService,
+  userRegiterService,
+} from "./user.service.js";
 
 export const userRegiter = async function (req, res, next) {
   try {
-    const { name, email, password, role = "user" } = req.body;
     const errors = validationResult(req);
-
     if (!errors.isEmpty()) {
       return res.status(200).json({
         status: false,
@@ -21,35 +19,11 @@ export const userRegiter = async function (req, res, next) {
       });
     }
 
-    if (!roles.includes(role)) {
-      return res.status(200).json({
-        success: false,
-        message: "Invalid user role",
-      });
-    }
-    let user = await UserModel.findOne({ email });
-
-    if (user) {
-      return res.status(401).json({
-        success: false,
-        message: "user already exits",
-      });
-    }
-    const hashedPassword = await hashPassword(password);
-
-    user = await UserModel.create({
-      userName: name,
-      email,
-      password: hashedPassword,
-      role,
-    });
-
-    res.status(200).json({
-      status: true,
-      message: "User registered successfully",
-    });
+    const { name, email, password, role = "user" } = req.body;
+    const response = await userRegiterService({ name, email, password, role });
+    return res.status(response.code).json(response);
   } catch (error) {
-    res.status(404).json({
+    return res.status(404).json({
       message: error.message,
     });
   }
@@ -59,7 +33,6 @@ export const userRegiter = async function (req, res, next) {
 
 export const userLogin = async function (req, res, next) {
   try {
-    const { email, password } = req.body;
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
@@ -69,32 +42,12 @@ export const userLogin = async function (req, res, next) {
         errors: errors.array(),
       });
     }
-    let user = await UserModel.findOne({ email }).select("+password");
+    const { email, password } = req.body;
+    const response = await userLoginService({ email, password });
 
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "password or email incorrect",
-      });
-    }
-
-    const isMatched = await comparePassword(password, user.password);
-
-    if (!isMatched) {
-      return res.status(401).json({
-        success: true,
-        message: "password or email incorrect",
-      });
-    }
-    const token = generateToken(user._id);
-
-    res.status(200).json({
-      status: true,
-      message: "User login successfully",
-      token,
-    });
+    return res.status(response.code).json(response);
   } catch (error) {
-    res.status(404).json({
+    return res.status(404).json({
       message: error.message,
     });
   }
@@ -104,13 +57,10 @@ export const userLogin = async function (req, res, next) {
 export const userProfile = async function (req, res, next) {
   try {
     const userId = req.user._id;
-    const user = await UserModel.findById(userId);
-    res.status(200).json({
-      success: true,
-      user,
-    });
+    const response = await getProfileService(userId);
+    return res.status(response.code).json(response);
   } catch (error) {
-    res.status(404).json({
+    return res.status(500).json({
       message: error.message,
     });
   }
@@ -120,14 +70,13 @@ export const userProfile = async function (req, res, next) {
 export const editProfile = async function (req, res, next) {
   try {
     const { name, email } = req.body;
-    const user = await UserModel.findById(req.user._id);
-    if (name) user.userName = name;
-    if (email) user.email = email;
+    const user = req.user;
 
-    await user.save();
+    const response = await editProfileService({ name, email, user });
+    return res.status(response.code).json(response);
   } catch (error) {
-    res.status(404).json({
-      message: error.message,
+    return res.status(500).json({
+      message: `Error ${error.message}`,
     });
   }
 };
@@ -147,86 +96,39 @@ export const updateProfilePicture = async function (req, res, next) {
       message: "file uplaod successfully",
     });
   } catch (error) {
-    res.status(404).json({
-      message: error.message,
+    return res.status(500).json({
+      success: false,
+      message: `Error :${error.message} `,
     });
   }
 };
 
 //forget password
 export const forgetPassword = async function (req, res, next) {
-  const { email } = req.body;
-  const user = await UserModel.findOne({ email });
-  if (!user) {
-    return res.status(402).json({
+  try {
+    const { email } = req.body;
+    const response = await forgetPasswordService({ email });
+    return res.status(response.code).json(response);
+  } catch (error) {
+    return res.status(500).json({
       success: false,
-      message: "email is not registered",
+      message: `Error :${error.message} `,
     });
   }
-  const token = Math.floor(Math.random() * 10000000000);
-
-  user.token = token;
-  sendMail(email, "Sample email", `your password token is ${token}`);
-  await user.save();
-  res.status(200).json({
-    success: true,
-    message: "email is send to your registered email",
-  });
 };
-
+//reset password
 export const resetPassword = async function (req, res, next) {
-  const { token } = req.params;
-  const { newPassword } = req.body;
-  const user = await UserModel.findOne({ token });
-  if (!user) {
-    return res.json({
-      sucess: false,
-      message: "token is invalid",
-    });
-  }
-  const hashedPassword = await hashPassword(newPassword);
-  user.password = hashedPassword;
-  await user.save();
-
-  res.status(200).json({
-    success: true,
-    message: "password is reset successfully",
-  });
-};
-
-//list of user
-export const manageUsers = async function (req, res, next) {
-  const users = await UserModel.find({});
-  res.status(200).json({
-    success: true,
-    users,
-  });
-};
-
-//change role
-export const updateRole = async function (req, res, next) {
-  const { id } = req.params;
-  const { role } = req.body;
-  const user = await UserModel.findById(id);
-  if (!user) {
-    return res.json({
+  try {
+    const { token } = req.params;
+    const { newPassword } = req.body;
+    const response = await resetPasswordService({ token, newPassword });
+    return res.status(response.code).json(response);
+  } catch (error) {
+    return res.status(500).json({
       success: false,
-      message: "user not found",
+      message: `Error :${error.message} `,
     });
   }
-  if (!roles.includes(role)) {
-    return res.status(200).json({
-      success: false,
-      message: "Invalid user role",
-    });
-  }
-
-  user.role = role;
-  user.save();
-  res.json({
-    success: true,
-    message: "user role change successfully",
-  });
 };
 
 //send email

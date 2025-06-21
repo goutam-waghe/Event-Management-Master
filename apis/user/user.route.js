@@ -8,8 +8,6 @@ import {
   updateProfilePicture,
   forgetPassword,
   resetPassword,
-  manageUsers,
-  updateRole,
 } from "./user.controller.js";
 import { isAuthanticated } from "../../helper/comman/isAuthanticated.js";
 import upload from "../../helper/comman/multer.js";
@@ -25,10 +23,6 @@ userRouter
   .put(isAuthanticated, upload.single("file"), updateProfilePicture);
 userRouter.route("/forgetpassword").put(forgetPassword);
 userRouter.route("/resetpassword/:token").put(resetPassword);
-
-// admin
-userRouter.route("/manage/users").get(isAuthanticated, manageUsers);
-userRouter.route("/manage/role/:id").post(isAuthanticated, updateRole);
 
 //send email
 userRouter.post("/send-email", async (req, res, next) => {

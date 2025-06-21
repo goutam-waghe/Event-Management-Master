@@ -6,7 +6,7 @@ import { isAuthanticated } from "../../helper/comman/isAuthanticated.js";
 const bookingRouter = Router();
 
 bookingRouter
-  .route("/booking/tickets")
+  .route("/tickets")
   .post(Validator("bookingValidator"), isAuthanticated, bookingTicket);
 
 export default bookingRouter;
